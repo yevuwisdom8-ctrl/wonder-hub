@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "cZCkMH7UYnerDlrpytVuv"
+uri = "file://attached_assets/generated_images/mobile_app_icon_for_925f.png"
+type = "image"
+title = "generated_image"
