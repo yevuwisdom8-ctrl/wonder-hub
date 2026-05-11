@@ -21,7 +21,10 @@ import type {
   GetRecentResultsParams,
   HealthStatus,
   ListTipsParams,
+  SendEmailResult,
   Stats,
+  SubscribeInput,
+  Subscriber,
   Tip,
   TipInput,
   TipUpdate,
@@ -772,3 +775,329 @@ export function useGetStats<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List all subscribers (admin)
+ */
+export const getListSubscribersUrl = () => {
+  return `/api/subscribers`;
+};
+
+export const listSubscribers = async (
+  options?: RequestInit,
+): Promise<Subscriber[]> => {
+  return customFetch<Subscriber[]>(getListSubscribersUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSubscribersQueryKey = () => {
+  return [`/api/subscribers`] as const;
+};
+
+export const getListSubscribersQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSubscribers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSubscribers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSubscribersQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listSubscribers>>> = ({
+    signal,
+  }) => listSubscribers({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSubscribers>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSubscribersQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSubscribers>>
+>;
+export type ListSubscribersQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all subscribers (admin)
+ */
+
+export function useListSubscribers<
+  TData = Awaited<ReturnType<typeof listSubscribers>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSubscribers>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSubscribersQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Subscribe to daily tips email
+ */
+export const getSubscribeUrl = () => {
+  return `/api/subscribers`;
+};
+
+export const subscribe = async (
+  subscribeInput: SubscribeInput,
+  options?: RequestInit,
+): Promise<Subscriber> => {
+  return customFetch<Subscriber>(getSubscribeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(subscribeInput),
+  });
+};
+
+export const getSubscribeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribe>>,
+    TError,
+    { data: BodyType<SubscribeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof subscribe>>,
+  TError,
+  { data: BodyType<SubscribeInput> },
+  TContext
+> => {
+  const mutationKey = ["subscribe"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof subscribe>>,
+    { data: BodyType<SubscribeInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return subscribe(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SubscribeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof subscribe>>
+>;
+export type SubscribeMutationBody = BodyType<SubscribeInput>;
+export type SubscribeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Subscribe to daily tips email
+ */
+export const useSubscribe = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof subscribe>>,
+    TError,
+    { data: BodyType<SubscribeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof subscribe>>,
+  TError,
+  { data: BodyType<SubscribeInput> },
+  TContext
+> => {
+  return useMutation(getSubscribeMutationOptions(options));
+};
+
+/**
+ * @summary Remove a subscriber (admin)
+ */
+export const getDeleteSubscriberUrl = (id: number) => {
+  return `/api/subscribers/${id}`;
+};
+
+export const deleteSubscriber = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteSubscriberUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSubscriberMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSubscriber>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSubscriber>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteSubscriber"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSubscriber>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteSubscriber(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSubscriberMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSubscriber>>
+>;
+
+export type DeleteSubscriberMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a subscriber (admin)
+ */
+export const useDeleteSubscriber = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSubscriber>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSubscriber>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteSubscriberMutationOptions(options));
+};
+
+/**
+ * @summary Send today's tips to all active subscribers (admin)
+ */
+export const getSendDailyEmailUrl = () => {
+  return `/api/emails/send-daily`;
+};
+
+export const sendDailyEmail = async (
+  options?: RequestInit,
+): Promise<SendEmailResult> => {
+  return customFetch<SendEmailResult>(getSendDailyEmailUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getSendDailyEmailMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendDailyEmail>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendDailyEmail>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["sendDailyEmail"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendDailyEmail>>,
+    void
+  > = () => {
+    return sendDailyEmail(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendDailyEmailMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendDailyEmail>>
+>;
+
+export type SendDailyEmailMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Send today's tips to all active subscribers (admin)
+ */
+export const useSendDailyEmail = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendDailyEmail>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendDailyEmail>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getSendDailyEmailMutationOptions(options));
+};

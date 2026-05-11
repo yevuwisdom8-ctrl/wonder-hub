@@ -1,15 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { Layout } from "@/components/layout";
 import { TipCard } from "@/components/tip-card";
 import { 
   useGetTodaysTips, 
   getGetTodaysTipsQueryKey,
   useGetStats,
-  getGetStatsQueryKey
+  getGetStatsQueryKey,
+  useSubscribe
 } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingUp, Target, Activity, AlertCircle } from "lucide-react";
+import { TrendingUp, Target, Activity, AlertCircle, Mail, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const { data: todayTips, isLoading: isLoadingTips } = useGetTodaysTips({
@@ -19,6 +23,30 @@ export default function Home() {
   const { data: stats, isLoading: isLoadingStats } = useGetStats({
     query: { queryKey: getGetStatsQueryKey() }
   });
+
+  const { toast } = useToast();
+  const subscribeMutation = useSubscribe();
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    subscribeMutation.mutate({
+      data: { email, name: name || undefined }
+    }, {
+      onSuccess: () => {
+        setIsSubscribed(true);
+      },
+      onError: (err: any) => {
+        toast({ 
+          variant: "destructive", 
+          title: "Subscription Failed", 
+          description: err?.error || "This email might already be subscribed." 
+        });
+      }
+    });
+  };
 
   return (
     <Layout>
@@ -54,6 +82,49 @@ export default function Home() {
                 </p>
               </div>
             )}
+          </div>
+
+          {/* Subscribe Section */}
+          <div className="mt-12 pt-8 border-t border-border/40">
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl font-mono uppercase tracking-tight flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-primary" />
+                  Get daily picks in your inbox
+                </CardTitle>
+                <CardDescription className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
+                  The desk's best analysis, delivered every morning.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isSubscribed ? (
+                  <div className="flex items-center gap-3 text-green-500 font-mono uppercase p-4 bg-green-500/10 rounded-md border border-green-500/20">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>Successfully Subscribed. Welcome to the desk.</span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3">
+                    <Input 
+                      required 
+                      type="email" 
+                      placeholder="EMAIL ADDRESS" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="font-mono bg-background/50"
+                    />
+                    <Input 
+                      placeholder="NAME (OPTIONAL)" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="font-mono bg-background/50 sm:w-48"
+                    />
+                    <Button type="submit" disabled={subscribeMutation.isPending} className="font-mono uppercase shrink-0">
+                      {subscribeMutation.isPending ? "Joining..." : "Subscribe"}
+                    </Button>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
 

@@ -191,3 +191,40 @@ export const GetStatsResponse = zod.object({
   winRate: zod.number().describe("Win rate as a percentage (0-100)"),
   totalOddsWon: zod.number().describe("Sum of odds for won tips"),
 });
+
+/**
+ * @summary List all subscribers (admin)
+ */
+export const ListSubscribersResponseItem = zod.object({
+  id: zod.number(),
+  email: zod.string(),
+  name: zod.string().nullish(),
+  active: zod.boolean(),
+  subscribedAt: zod.string(),
+});
+export const ListSubscribersResponse = zod.array(ListSubscribersResponseItem);
+
+/**
+ * @summary Subscribe to daily tips email
+ */
+export const SubscribeBody = zod.object({
+  email: zod.string().email(),
+  name: zod.string().optional(),
+});
+
+/**
+ * @summary Remove a subscriber (admin)
+ */
+export const DeleteSubscriberParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Send today's tips to all active subscribers (admin)
+ */
+export const SendDailyEmailResponse = zod.object({
+  sent: zod.number(),
+  failed: zod.number(),
+  total: zod.number(),
+  message: zod.string().optional(),
+});

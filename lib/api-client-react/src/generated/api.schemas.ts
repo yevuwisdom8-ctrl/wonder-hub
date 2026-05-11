@@ -96,6 +96,27 @@ export interface Stats {
   totalOddsWon: number;
 }
 
+export interface Subscriber {
+  id: number;
+  email: string;
+  /** @nullable */
+  name?: string | null;
+  active: boolean;
+  subscribedAt: string;
+}
+
+export interface SubscribeInput {
+  email: string;
+  name?: string;
+}
+
+export interface SendEmailResult {
+  sent: number;
+  failed: number;
+  total: number;
+  message?: string;
+}
+
 export interface ErrorResponse {
   error: string;
 }

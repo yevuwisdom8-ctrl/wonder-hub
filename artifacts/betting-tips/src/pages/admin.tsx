@@ -6,7 +6,11 @@ import {
   useCreateTip,
   useUpdateTip,
   useDeleteTip,
-  TipUpdateStatus
+  TipUpdateStatus,
+  useListSubscribers,
+  getListSubscribersQueryKey,
+  useDeleteSubscriber,
+  useSendDailyEmail
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -16,9 +20,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit2 } from "lucide-react";
+import { Plus, Trash2, Edit2, Users, Send } from "lucide-react";
 import { format } from "date-fns";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Admin() {
   const { data: tips, isLoading } = useListTips({}, {
@@ -30,6 +35,39 @@ export default function Admin() {
   const createTipMutation = useCreateTip();
   const updateTipMutation = useUpdateTip();
   const deleteTipMutation = useDeleteTip();
+
+  const { data: subscribers, isLoading: isLoadingSubscribers } = useListSubscribers({}, {
+    query: { queryKey: getListSubscribersQueryKey() }
+  });
+  const deleteSubscriberMutation = useDeleteSubscriber();
+  const sendEmailMutation = useSendDailyEmail();
+  const [emailResult, setEmailResult] = useState<{sent: number, total: number} | null>(null);
+
+  const handleSendEmail = () => {
+    if (confirm("Send today's tips to all active subscribers?")) {
+      setEmailResult(null);
+      sendEmailMutation.mutate({}, {
+        onSuccess: (res) => {
+          setEmailResult({ sent: res.sent, total: res.total });
+          toast({ title: "Email dispatch complete" });
+        },
+        onError: (err: any) => {
+          toast({ variant: "destructive", title: "Email Dispatch Failed", description: err?.error || "Could not send emails." });
+        }
+      });
+    }
+  };
+
+  const handleRemoveSubscriber = (id: number) => {
+    if (confirm("Are you sure you want to remove this subscriber?")) {
+      deleteSubscriberMutation.mutate({ id }, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListSubscribersQueryKey() });
+          toast({ title: "Subscriber removed" });
+        }
+      });
+    }
+  };
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -111,153 +149,247 @@ export default function Admin() {
           <h1 className="text-3xl font-bold tracking-tight uppercase font-mono">
             Admin Panel
           </h1>
-          
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="font-mono uppercase tracking-tight">
-                <Plus className="w-4 h-4 mr-2" /> New Tip
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle className="font-mono uppercase">Post New Tip</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4 pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">Sport</label>
-                    <Select value={formData.sport} onValueChange={(v) => setFormData({...formData, sport: v})}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Football">Football</SelectItem>
-                        <SelectItem value="Basketball">Basketball</SelectItem>
-                        <SelectItem value="Tennis">Tennis</SelectItem>
-                        <SelectItem value="Cricket">Cricket</SelectItem>
-                        <SelectItem value="Baseball">Baseball</SelectItem>
-                        <SelectItem value="Hockey">Hockey</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">League</label>
-                    <Input required value={formData.league} onChange={(e) => setFormData({...formData, league: e.target.value})} placeholder="e.g. Premier League" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">Home Team</label>
-                    <Input required value={formData.homeTeam} onChange={(e) => setFormData({...formData, homeTeam: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">Away Team</label>
-                    <Input required value={formData.awayTeam} onChange={(e) => setFormData({...formData, awayTeam: e.target.value})} />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">The Pick</label>
-                    <Input required value={formData.tipText} onChange={(e) => setFormData({...formData, tipText: e.target.value})} placeholder="e.g. Home Team to Win" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">Odds</label>
-                    <Input required type="number" step="0.01" min="1.01" value={formData.odds} onChange={(e) => setFormData({...formData, odds: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">Confidence (1-5)</label>
-                    <Input required type="number" min="1" max="5" value={formData.confidence} onChange={(e) => setFormData({...formData, confidence: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">Match Date</label>
-                    <Input required type="date" value={formData.matchDate} onChange={(e) => setFormData({...formData, matchDate: e.target.value})} />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <label className="text-xs font-mono uppercase text-muted-foreground">Notes (Optional)</label>
-                    <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} placeholder="Brief analysis..." />
-                  </div>
-                </div>
-                <div className="pt-4 flex justify-end">
-                  <Button type="submit" disabled={createTipMutation.isPending} className="font-mono uppercase">
-                    {createTipMutation.isPending ? "Posting..." : "Post Tip"}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
         </div>
 
-        <div className="border border-border/40 rounded-md bg-secondary/10 overflow-hidden">
-          <Table>
-            <TableHeader className="bg-secondary/40 font-mono text-xs uppercase tracking-wider">
-              <TableRow>
-                <TableHead>Match</TableHead>
-                <TableHead>Pick</TableHead>
-                <TableHead>Odds</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground font-mono text-xs uppercase">
-                    Loading tips...
-                  </TableCell>
-                </TableRow>
-              ) : tips && tips.length > 0 ? (
-                tips.map((tip) => (
-                  <TableRow key={tip.id} className="hover:bg-secondary/20">
-                    <TableCell>
-                      <div className="font-medium text-sm">{tip.homeTeam} v {tip.awayTeam}</div>
-                      <div className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-wider">{tip.sport} / {tip.league}</div>
-                    </TableCell>
-                    <TableCell className="font-medium text-sm">{tip.tipText}</TableCell>
-                    <TableCell className="font-mono text-primary font-bold">{tip.odds.toFixed(2)}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{format(new Date(tip.matchDate), "MMM dd")}</TableCell>
-                    <TableCell>
-                      <Select 
-                        value={tip.status} 
-                        onValueChange={(v) => handleStatusChange(tip.id, v as TipUpdateStatus)}
-                        disabled={updateTipMutation.isPending}
-                      >
-                        <SelectTrigger className={`h-7 w-[110px] text-xs font-mono uppercase tracking-wider ${
-                          tip.status === 'won' ? 'border-green-500/50 text-green-500 bg-green-500/10' :
-                          tip.status === 'lost' ? 'border-red-500/50 text-red-500 bg-red-500/10' :
-                          tip.status === 'void' ? 'border-zinc-500/50 text-zinc-400 bg-zinc-500/10' :
-                          'border-primary/50 text-primary bg-primary/10'
-                        }`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">PENDING</SelectItem>
-                          <SelectItem value="won">WON</SelectItem>
-                          <SelectItem value="lost">LOST</SelectItem>
-                          <SelectItem value="void">VOID</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleDelete(tip.id)}
-                        disabled={deleteTipMutation.isPending}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
+        <Tabs defaultValue="tips" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-[400px] bg-secondary/20 border border-border/40">
+            <TabsTrigger value="tips" className="font-mono uppercase data-[state=active]:bg-primary/20 data-[state=active]:text-primary">Picks</TabsTrigger>
+            <TabsTrigger value="subscribers" className="font-mono uppercase data-[state=active]:bg-primary/20 data-[state=active]:text-primary">Subscribers</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="tips" className="space-y-4 pt-4">
+            <div className="flex justify-end">
+              <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogTrigger asChild>
+                  <Button className="font-mono uppercase tracking-tight">
+                    <Plus className="w-4 h-4 mr-2" /> New Tip
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="font-mono uppercase">Post New Tip</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleCreate} className="space-y-4 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">Sport</label>
+                        <Select value={formData.sport} onValueChange={(v) => setFormData({...formData, sport: v})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Football">Football</SelectItem>
+                            <SelectItem value="Basketball">Basketball</SelectItem>
+                            <SelectItem value="Tennis">Tennis</SelectItem>
+                            <SelectItem value="Cricket">Cricket</SelectItem>
+                            <SelectItem value="Baseball">Baseball</SelectItem>
+                            <SelectItem value="Hockey">Hockey</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">League</label>
+                        <Input required value={formData.league} onChange={(e) => setFormData({...formData, league: e.target.value})} placeholder="e.g. Premier League" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">Home Team</label>
+                        <Input required value={formData.homeTeam} onChange={(e) => setFormData({...formData, homeTeam: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">Away Team</label>
+                        <Input required value={formData.awayTeam} onChange={(e) => setFormData({...formData, awayTeam: e.target.value})} />
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">The Pick</label>
+                        <Input required value={formData.tipText} onChange={(e) => setFormData({...formData, tipText: e.target.value})} placeholder="e.g. Home Team to Win" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">Odds</label>
+                        <Input required type="number" step="0.01" min="1.01" value={formData.odds} onChange={(e) => setFormData({...formData, odds: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">Confidence (1-5)</label>
+                        <Input required type="number" min="1" max="5" value={formData.confidence} onChange={(e) => setFormData({...formData, confidence: e.target.value})} />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">Match Date</label>
+                        <Input required type="date" value={formData.matchDate} onChange={(e) => setFormData({...formData, matchDate: e.target.value})} />
+                      </div>
+                      <div className="space-y-2 col-span-2">
+                        <label className="text-xs font-mono uppercase text-muted-foreground">Notes (Optional)</label>
+                        <Textarea value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} placeholder="Brief analysis..." />
+                      </div>
+                    </div>
+                    <div className="pt-4 flex justify-end">
+                      <Button type="submit" disabled={createTipMutation.isPending} className="font-mono uppercase">
+                        {createTipMutation.isPending ? "Posting..." : "Post Tip"}
                       </Button>
-                    </TableCell>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="border border-border/40 rounded-md bg-secondary/10 overflow-hidden">
+              <Table>
+                <TableHeader className="bg-secondary/40 font-mono text-xs uppercase tracking-wider">
+                  <TableRow>
+                    <TableHead>Match</TableHead>
+                    <TableHead>Pick</TableHead>
+                    <TableHead>Odds</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground font-mono text-xs uppercase">
-                    No tips found in database.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground font-mono text-xs uppercase">
+                        Loading tips...
+                      </TableCell>
+                    </TableRow>
+                  ) : tips && tips.length > 0 ? (
+                    tips.map((tip) => (
+                      <TableRow key={tip.id} className="hover:bg-secondary/20">
+                        <TableCell>
+                          <div className="font-medium text-sm">{tip.homeTeam} v {tip.awayTeam}</div>
+                          <div className="text-[10px] font-mono text-muted-foreground mt-0.5 uppercase tracking-wider">{tip.sport} / {tip.league}</div>
+                        </TableCell>
+                        <TableCell className="font-medium text-sm">{tip.tipText}</TableCell>
+                        <TableCell className="font-mono text-primary font-bold">{tip.odds.toFixed(2)}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{format(new Date(tip.matchDate), "MMM dd")}</TableCell>
+                        <TableCell>
+                          <Select 
+                            value={tip.status} 
+                            onValueChange={(v) => handleStatusChange(tip.id, v as TipUpdateStatus)}
+                            disabled={updateTipMutation.isPending}
+                          >
+                            <SelectTrigger className={`h-7 w-[110px] text-xs font-mono uppercase tracking-wider ${
+                              tip.status === 'won' ? 'border-green-500/50 text-green-500 bg-green-500/10' :
+                              tip.status === 'lost' ? 'border-red-500/50 text-red-500 bg-red-500/10' :
+                              tip.status === 'void' ? 'border-zinc-500/50 text-zinc-400 bg-zinc-500/10' :
+                              'border-primary/50 text-primary bg-primary/10'
+                            }`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">PENDING</SelectItem>
+                              <SelectItem value="won">WON</SelectItem>
+                              <SelectItem value="lost">LOST</SelectItem>
+                              <SelectItem value="void">VOID</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDelete(tip.id)}
+                            disabled={deleteTipMutation.isPending}
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground font-mono text-xs uppercase">
+                        No tips found in database.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="subscribers" className="space-y-4 pt-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-secondary/10 p-4 border border-border/40 rounded-md">
+              <div>
+                <h3 className="font-mono uppercase font-bold flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" /> Audience Management
+                </h3>
+                <p className="text-sm text-muted-foreground font-mono mt-1">
+                  Active audience members receive today's pending picks.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {emailResult && (
+                  <div className="text-xs font-mono uppercase bg-green-500/10 text-green-500 border border-green-500/20 px-3 py-1.5 rounded-md">
+                    Sent to {emailResult.sent} / {emailResult.total}
+                  </div>
+                )}
+                <Button 
+                  onClick={handleSendEmail} 
+                  disabled={sendEmailMutation.isPending || !subscribers?.length}
+                  className="font-mono uppercase tracking-tight whitespace-nowrap"
+                >
+                  <Send className="w-4 h-4 mr-2" /> 
+                  {sendEmailMutation.isPending ? "Dispatching..." : "Send Today's Tips"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="border border-border/40 rounded-md bg-secondary/10 overflow-hidden">
+              <Table>
+                <TableHeader className="bg-secondary/40 font-mono text-xs uppercase tracking-wider">
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingSubscribers ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground font-mono text-xs uppercase">
+                        Loading subscribers...
+                      </TableCell>
+                    </TableRow>
+                  ) : subscribers && subscribers.length > 0 ? (
+                    subscribers.map((sub) => (
+                      <TableRow key={sub.id} className="hover:bg-secondary/20">
+                        <TableCell className="font-medium text-sm font-mono">{sub.email}</TableCell>
+                        <TableCell className="text-sm">{sub.name || <span className="text-muted-foreground italic">Anonymous</span>}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {format(new Date(sub.subscribedAt), "MMM dd, yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={sub.active ? "default" : "secondary"} className="font-mono text-[10px] uppercase tracking-wider">
+                            {sub.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleRemoveSubscriber(sub.id)}
+                            disabled={deleteSubscriberMutation.isPending}
+                            className="h-8 text-xs font-mono uppercase text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          >
+                            Remove
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground font-mono text-xs uppercase">
+                        No subscribers found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );
