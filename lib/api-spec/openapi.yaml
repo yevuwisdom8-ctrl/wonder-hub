@@ -13,6 +13,8 @@ tags:
     description: Betting tip predictions
   - name: stats
     description: Statistics and summaries
+  - name: subscribers
+    description: Email subscriber management
 paths:
   /healthz:
     get:
@@ -199,6 +201,78 @@ paths:
               schema:
                 $ref: "#/components/schemas/Stats"
 
+  /subscribers:
+    get:
+      operationId: listSubscribers
+      tags: [subscribers]
+      summary: List all subscribers (admin)
+      responses:
+        "200":
+          description: List of subscribers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscriber"
+    post:
+      operationId: subscribe
+      tags: [subscribers]
+      summary: Subscribe to daily tips email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscribeInput"
+      responses:
+        "201":
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscriber"
+        "400":
+          description: Invalid or duplicate email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /subscribers/{id}:
+    delete:
+      operationId: deleteSubscriber
+      tags: [subscribers]
+      summary: Remove a subscriber (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /emails/send-daily:
+    post:
+      operationId: sendDailyEmail
+      tags: [subscribers]
+      summary: Send today's tips to all active subscribers (admin)
+      responses:
+        "200":
+          description: Email send result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendEmailResult"
+        "500":
+          description: Send failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -339,6 +413,52 @@ components:
         totalOddsWon:
           type: number
           description: Sum of odds for won tips
+
+    Subscriber:
+      type: object
+      required:
+        - id
+        - email
+        - active
+        - subscribedAt
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+        active:
+          type: boolean
+        subscribedAt:
+          type: string
+
+    SubscribeInput:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+
+    SendEmailResult:
+      type: object
+      required:
+        - sent
+        - failed
+        - total
+      properties:
+        sent:
+          type: integer
+        failed:
+          type: integer
+        total:
+          type: integer
+        message:
+          type: string
 
     ErrorResponse:
       type: object
