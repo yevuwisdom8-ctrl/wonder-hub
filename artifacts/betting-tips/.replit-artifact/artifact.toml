@@ -1,6 +1,6 @@
 kind = "web"
-previewPath = "/"
-title = "Betting Tips"
+previewPath = "/web/"
+title = "Betting Tips (Web)"
 version = "1.0.0"
 id = "artifacts/betting-tips"
 router = "path"
@@ -11,7 +11,7 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
+paths = [ "/web/" ]
 localPort = 18493
 
 [services.development]
@@ -28,4 +28,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "18493"
-BASE_PATH = "/"
+BASE_PATH = "/web/"
