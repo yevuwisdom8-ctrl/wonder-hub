@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Betting Tips"
+version = "1.0.0"
+id = "artifacts/betting-tips"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18493
+
+[services.development]
+run = "pnpm --filter @workspace/betting-tips run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/betting-tips", "run", "build" ]
+publicDir = "artifacts/betting-tips/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18493"
+BASE_PATH = "/"

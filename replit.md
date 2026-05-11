@@ -1,6 +1,6 @@
-# [Project name]
+# TipMaster
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A daily sports betting tips platform where an admin posts predictions and visitors track results, with live performance stats and full results history.
 
 ## Run & Operate
 
@@ -19,27 +19,31 @@ _Replace the heading above with the project's name, and this line with one sente
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
+- Frontend: React + Vite, TanStack Query, Wouter router
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
-
-## Architecture decisions
-
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- DB schema: `lib/db/src/schema/tips.ts`
+- API contract: `lib/api-spec/openapi.yaml`
+- API routes: `artifacts/api-server/src/routes/tips.ts`
+- Frontend: `artifacts/betting-tips/src/`
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- **Today's Tips** (`/`) — today's picks with live win-rate stats panel
+- **Archive** (`/tips`) — all tips filterable by sport, status, and date
+- **Results** (`/results`) — recent won/lost outcomes feed
+- **Admin** (`/admin`) — CRUD panel to post, edit, and delete tips; update results inline
 
-## User preferences
+## Architecture decisions
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Tips stored in PostgreSQL with Drizzle ORM; `matchDate` is a plain text string (YYYY-MM-DD) for easy filtering
+- `/tips/today` and `/tips/recent-results` are dedicated endpoints for the two most common views
+- Stats computed server-side from full tip set; win rate excludes void tips
+- No authentication on admin panel — treat as a trusted internal tool
+- Orval codegen generates both Zod server schemas and React Query client hooks from a single OpenAPI spec
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- After changing `lib/api-spec/openapi.yaml`, always run `pnpm --filter @workspace/api-spec run codegen` before using new types
+- The `odds` column is stored as `numeric` in Postgres and returned as a JS `number` via `parseFloat` in the route handler

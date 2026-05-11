@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Betting Tips API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: tips
+    description: Betting tip predictions
+  - name: stats
+    description: Statistics and summaries
 paths:
   /healthz:
     get:
@@ -24,6 +27,178 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /tips:
+    get:
+      operationId: listTips
+      tags: [tips]
+      summary: List all tips
+      parameters:
+        - name: date
+          in: query
+          schema:
+            type: string
+          description: Filter by match date (YYYY-MM-DD)
+        - name: sport
+          in: query
+          schema:
+            type: string
+          description: Filter by sport
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, won, lost, void]
+          description: Filter by status
+      responses:
+        "200":
+          description: List of tips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tip"
+    post:
+      operationId: createTip
+      tags: [tips]
+      summary: Create a new tip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TipInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tip"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tips/today:
+    get:
+      operationId: getTodaysTips
+      tags: [tips]
+      summary: Get today's tips
+      responses:
+        "200":
+          description: Today's tips
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tip"
+
+  /tips/recent-results:
+    get:
+      operationId: getRecentResults
+      tags: [tips]
+      summary: Get recent resolved tips (won/lost)
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Max number of results to return
+      responses:
+        "200":
+          description: Recent results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tip"
+
+  /tips/{id}:
+    get:
+      operationId: getTip
+      tags: [tips]
+      summary: Get a tip by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Tip detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tip"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateTip
+      tags: [tips]
+      summary: Update a tip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TipUpdate"
+      responses:
+        "200":
+          description: Updated tip
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tip"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteTip
+      tags: [tips]
+      summary: Delete a tip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Get overall performance statistics
+      responses:
+        "200":
+          description: Stats summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +209,141 @@ components:
       required:
         - status
 
+    Tip:
+      type: object
+      required:
+        - id
+        - sport
+        - homeTeam
+        - awayTeam
+        - league
+        - tipText
+        - odds
+        - status
+        - matchDate
+        - createdAt
+      properties:
+        id:
+          type: integer
+        sport:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        league:
+          type: string
+        tipText:
+          type: string
+        odds:
+          type: number
+        confidence:
+          type: ["integer", "null"]
+          description: Confidence level 1-5
+        status:
+          type: string
+          enum: [pending, won, lost, void]
+        matchDate:
+          type: string
+          description: Match date (YYYY-MM-DD)
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+
+    TipInput:
+      type: object
+      required:
+        - sport
+        - homeTeam
+        - awayTeam
+        - league
+        - tipText
+        - odds
+        - matchDate
+      properties:
+        sport:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        league:
+          type: string
+        tipText:
+          type: string
+        odds:
+          type: number
+        confidence:
+          type: integer
+          minimum: 1
+          maximum: 5
+        matchDate:
+          type: string
+        notes:
+          type: string
+
+    TipUpdate:
+      type: object
+      properties:
+        sport:
+          type: string
+        homeTeam:
+          type: string
+        awayTeam:
+          type: string
+        league:
+          type: string
+        tipText:
+          type: string
+        odds:
+          type: number
+        confidence:
+          type: integer
+          minimum: 1
+          maximum: 5
+        status:
+          type: string
+          enum: [pending, won, lost, void]
+        matchDate:
+          type: string
+        notes:
+          type: string
+
+    Stats:
+      type: object
+      required:
+        - total
+        - won
+        - lost
+        - pending
+        - void
+        - winRate
+        - totalOddsWon
+      properties:
+        total:
+          type: integer
+        won:
+          type: integer
+        lost:
+          type: integer
+        pending:
+          type: integer
+        void:
+          type: integer
+        winRate:
+          type: number
+          description: Win rate as a percentage (0-100)
+        totalOddsWon:
+          type: number
+          description: Sum of odds for won tips
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
