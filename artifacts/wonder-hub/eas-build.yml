@@ -1,0 +1,11 @@
+build:
+  name: Wonder Hub Android Preview
+  steps:
+    - eas/checkout
+    - run:
+        name: Install dependencies
+        command: pnpm install --no-frozen-lockfile
+    - eas/prebuild:
+        inputs:
+          clean: false
+    - eas/run_gradle
