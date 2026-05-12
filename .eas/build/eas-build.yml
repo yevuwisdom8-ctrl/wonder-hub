@@ -15,8 +15,11 @@ build:
     - run:
         name: Build APK
         working_directory: artifacts/wonder-hub/android
-        command: chmod +x gradlew && ./gradlew assembleRelease
+        command: |
+          chmod +x gradlew
+          export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+          ./gradlew assembleDebug --no-daemon
     - eas/upload_artifact:
         inputs:
           type: android-apk
-          path: artifacts/wonder-hub/android/app/build/outputs/apk/release/app-release.apk
+          path: artifacts/wonder-hub/android/app/build/outputs/apk/debug/app-debug.apk
