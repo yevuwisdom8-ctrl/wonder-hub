@@ -13,12 +13,18 @@ build:
         working_directory: artifacts/wonder-hub
         command: npx expo prebuild --no-install --platform android
     - run:
+        name: Fix Gradle wrapper
+        working_directory: artifacts/wonder-hub/android
+        command: |
+          sed -i 's|distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-bin.zip|' gradle/wrapper/gradle-wrapper.properties
+          cat gradle/wrapper/gradle-wrapper.properties
+    - run:
         name: Build APK
         working_directory: artifacts/wonder-hub/android
         command: |
           chmod +x gradlew
           export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --warning-mode=none --stacktrace 2>&1 | tail -200
     - eas/upload_artifact:
         inputs:
           type: android-apk
