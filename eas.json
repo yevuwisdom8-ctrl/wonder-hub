@@ -4,9 +4,7 @@
   },
   "build": {
     "preview": {
-      "android": {
-        "buildType": "apk"
-      }
+      "config": "artifacts/wonder-hub/eas-build.yml"
     },
     "production": {
       "android": {

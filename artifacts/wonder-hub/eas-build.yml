@@ -4,8 +4,11 @@ build:
     - eas/checkout
     - run:
         name: Install dependencies
+        working_directory: /home/expo/workingdir/build
         command: pnpm install --no-frozen-lockfile
     - eas/prebuild:
         inputs:
           clean: false
-    - eas/run_gradle
+    - eas/run_gradle:
+        inputs:
+          gradle_tasks: assembleRelease
