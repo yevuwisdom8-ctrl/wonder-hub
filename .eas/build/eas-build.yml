@@ -4,7 +4,6 @@ build:
     - eas/checkout
     - run:
         name: Install dependencies
-        working_directory: /home/expo/workingdir/build
         command: pnpm install --no-frozen-lockfile
     - eas/prebuild:
         inputs:
