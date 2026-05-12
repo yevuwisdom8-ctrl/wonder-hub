@@ -4,7 +4,7 @@
   },
   "build": {
     "preview": {
-      "config": "artifacts/wonder-hub/eas-build.yml"
+      "config": "eas-build.yml"
     },
     "production": {
       "android": {
