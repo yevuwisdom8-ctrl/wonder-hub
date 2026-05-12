@@ -12,7 +12,11 @@ build:
         name: Prebuild
         working_directory: artifacts/wonder-hub
         command: npx expo prebuild --no-install --platform android
-    - eas/run_gradle:
+    - run:
+        name: Build APK
+        working_directory: artifacts/wonder-hub/android
+        command: chmod +x gradlew && ./gradlew assembleRelease
+    - eas/upload_artifact:
         inputs:
-          gradle_tasks: assembleRelease
-          app_directory: artifacts/wonder-hub
+          type: android-apk
+          path: artifacts/wonder-hub/android/app/build/outputs/apk/release/app-release.apk
