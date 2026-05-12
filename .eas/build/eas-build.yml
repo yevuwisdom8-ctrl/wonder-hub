@@ -8,9 +8,11 @@ build:
     - run:
         name: Install dependencies
         command: pnpm install --no-frozen-lockfile
-    - eas/prebuild:
-        inputs:
-          clean: false
+    - run:
+        name: Prebuild
+        working_directory: artifacts/wonder-hub
+        command: npx expo prebuild --no-install --platform android
     - eas/run_gradle:
         inputs:
           gradle_tasks: assembleRelease
+          app_directory: artifacts/wonder-hub
